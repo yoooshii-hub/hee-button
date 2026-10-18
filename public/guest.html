@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0b2a">
+  <title>へぇボタン</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="guest">
+  <button class="btn ghost sound-toggle" id="sound" type="button">🔊 音あり</button>
+  <main class="guest-wrap">
+    <div class="guest-title" id="title">読み込み中…</div>
+
+    <div class="my-count">
+      <div class="num" id="count">0</div>
+      <div class="label">あなたの へぇ</div>
+    </div>
+
+    <div class="hee-stage" id="stage">
+      <button class="hee-button" id="hee" type="button" aria-label="へぇ" disabled>
+        <svg viewBox="0 0 400 400" aria-hidden="true">
+          <defs>
+            <radialGradient id="domeGrad" cx="40%" cy="30%" r="75%">
+              <stop offset="0%" stop-color="#ff9fb0"/>
+              <stop offset="45%" stop-color="#f0405c"/>
+              <stop offset="100%" stop-color="#a5142d"/>
+            </radialGradient>
+            <linearGradient id="baseGrad" x1="0" x2="1">
+              <stop offset="0%" stop-color="#7a6a2a"/>
+              <stop offset="30%" stop-color="#f6d77a"/>
+              <stop offset="60%" stop-color="#d9a92e"/>
+              <stop offset="100%" stop-color="#6e5a1c"/>
+            </linearGradient>
+            <linearGradient id="podGrad" x1="0" x2="1">
+              <stop offset="0%" stop-color="#15123a"/>
+              <stop offset="50%" stop-color="#3a3478"/>
+              <stop offset="100%" stop-color="#110e2e"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="200" cy="350" rx="175" ry="34" fill="rgba(0,0,0,.45)"/>
+          <!-- 台座 -->
+          <path d="M30 270 v52 a170 44 0 0 0 340 0 v-52 z" fill="url(#podGrad)"/>
+          <ellipse cx="200" cy="270" rx="170" ry="44" fill="#2a2560"/>
+          <!-- 金のリング -->
+          <path d="M52 262 v18 a148 38 0 0 0 296 0 v-18 z" fill="url(#baseGrad)"/>
+          <ellipse cx="200" cy="262" rx="148" ry="38" fill="#3b2a08"/>
+          <!-- 押せるドーム -->
+          <g class="dome">
+            <path d="M64 258 a136 34 0 0 0 272 0 c0 -150 -272 -150 -272 0 z" fill="url(#domeGrad)" stroke="#7d0d20" stroke-width="2"/>
+            <ellipse cx="160" cy="175" rx="70" ry="26" fill="rgba(255,255,255,.35)" transform="rotate(-12 160 175)"/>
+            <text x="200" y="245" text-anchor="middle" font-size="104" font-weight="900"
+                  font-family="Hiragino Mincho ProN, Yu Mincho, Noto Serif JP, serif"
+                  fill="#fff" stroke="#7d0d20" stroke-width="6" paint-order="stroke">へぇ</text>
+          </g>
+        </svg>
+      </button>
+    </div>
+
+    <div class="status-msg" id="msg">接続しています…</div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/hee-sound.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const slug = location.pathname.split('/').pop();
+    const button = $('hee');
+    const socket = io();
+
+    let state = null; // { title, status, round }
+    let myCount = 0;
+    let soundOn = true;
+
+    const MESSAGES = {
+      ready: '開始までお待ちください',
+      open: 'ボタンを押して「へぇ」を送ろう！',
+      paused: '一時停止中です',
+    };
+
+    function render() {
+      const canPress = socket.connected && state && state.status === 'open';
+      button.disabled = !canPress;
+      if (!state) return;
+      $('title').textContent = state.title;
+      document.title = `へぇボタン - ${state.title}`;
+      $('msg').textContent = socket.connected ? MESSAGES[state.status] : '再接続しています…';
+      $('msg').className = `status-msg ${canPress ? 'open' : ''}`;
+    }
+
+    function setCount(n, animate) {
+      myCount = n;
+      const el = $('count');
+      el.textContent = n.toLocaleString();
+      if (animate) {
+        el.classList.remove('bump');
+        void el.offsetWidth;
+        el.classList.add('bump');
+      }
+    }
+
+    function applyState(s) {
+      if (state && s.round !== state.round) setCount(0, false); // 管理者がリセットした
+      state = s;
+      render();
+    }
+
+    function join() {
+      socket.emit('join-guest', { slug }, (res) => {
+        if (res.error) {
+          $('title').textContent = 'イベントが見つかりません';
+          $('msg').textContent = 'URLをご確認ください';
+          state = null;
+          button.disabled = true;
+          return;
+        }
+        applyState(res.state);
+      });
+    }
+
+    socket.on('connect', join);
+    socket.on('disconnect', render);
+    socket.on('state', applyState);
+    socket.on('deleted', () => {
+      state = null;
+      button.disabled = true;
+      $('title').textContent = 'このイベントは終了しました';
+      $('msg').textContent = 'ご参加ありがとうございました';
+    });
+
+    function effects() {
+      if (soundOn) HeeSound.play();
+      if (navigator.vibrate) navigator.vibrate(15);
+      button.classList.add('pressed');
+      setTimeout(() => button.classList.remove('pressed'), 90);
+
+      const stage = $('stage');
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      stage.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 520);
+
+      const pop = document.createElement('div');
+      pop.className = 'pop';
+      pop.textContent = 'へぇ';
+      pop.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 160)}px`);
+      stage.appendChild(pop);
+      setTimeout(() => pop.remove(), 720);
+    }
+
+    function press(e) {
+      if (e) e.preventDefault();
+      if (button.disabled) return;
+      effects();
+      setCount(myCount + 1, true); // 即座に反映し、サーバーで数えられなかった分だけ戻す
+      const round = state.round;
+      socket.timeout(5000).emit('hee', { round }, (err, res) => {
+        if (err || !res.ok) {
+          if (state && state.round === round) setCount(Math.max(0, myCount - 1), false);
+          if (res && res.state) applyState(res.state);
+        }
+      });
+    }
+
+    // タップの遅延をなくすため pointerdown で反応する
+    button.addEventListener('pointerdown', press);
+    button.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) press(e);
+    });
+    button.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('touchend', HeeSound.unlock, { once: true });
+
+    $('sound').onclick = () => {
+      soundOn = !soundOn;
+      $('sound').textContent = soundOn ? '🔊 音あり' : '🔇 音なし';
+    };
+  </script>
+</body>
+</html>

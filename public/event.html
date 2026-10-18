@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>イベント管理</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="wrap">
+    <p><a href="/room">← マイルームに戻る</a></p>
+    <div class="row" style="justify-content:space-between">
+      <h1 id="title" style="margin:0"></h1>
+      <span class="badge" id="status"></span>
+    </div>
+    <p class="muted">接続中の参加者: <b id="guests">0</b> 人</p>
+
+    <div class="card">
+      <h2>進行</h2>
+      <div class="big-total"><span id="total">0</span><small>へぇ</small></div>
+      <div class="row" style="justify-content:center;margin-top:8px">
+        <button class="btn ok" id="start">▶ 開始（ボタン受付）</button>
+        <button class="btn warn" id="pause">❚❚ 一時停止</button>
+        <button class="btn secondary" id="reset">↺ リセット</button>
+      </div>
+      <p class="muted" style="text-align:center">リセットすると合計と参加者の回数が 0 に戻り、再び「開始」するまで押せなくなります。</p>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>参加者用 URL / QR コード</h2>
+        <img class="qr" id="qr" alt="参加者用QRコード">
+        <div class="url-box" style="margin-top:12px">
+          <input type="text" id="guest-url" readonly>
+          <button class="btn secondary" data-copy="guest-url">コピー</button>
+        </div>
+        <p><a id="guest-open" target="_blank" rel="noopener">参加者ページを開く ↗</a></p>
+      </div>
+      <div class="card">
+        <h2>合計表示ページ</h2>
+        <p class="muted">会場のスクリーンやプロジェクターに映すページです。押されるたびにリアルタイムで数が増え、「へぇ」が舞い上がります。</p>
+        <a class="btn" id="display-open" target="_blank" rel="noopener" style="width:100%">合計表示ページを開く ↗</a>
+        <div class="url-box" style="margin-top:12px">
+          <input type="text" id="display-url" readonly>
+          <button class="btn secondary" data-copy="display-url">コピー</button>
+        </div>
+        <p class="muted">このURLを知っている人は合計を見られます（操作はできません）。</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>設定</h2>
+      <form id="rename" class="row">
+        <input id="new-title" type="text" style="flex:1;min-width:200px" maxlength="80">
+        <button class="btn secondary">名前を変更</button>
+      </form>
+      <p style="margin-top:16px"><button class="btn secondary" id="delete" style="color:var(--accent-dark)">このイベントを削除</button></p>
+    </div>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/common.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const eventId = location.pathname.split('/').pop();
+    let ev;
+
+    function render() {
+      document.title = `${ev.title} - イベント管理`;
+      $('title').textContent = ev.title;
+      $('status').textContent = STATUS_LABEL[ev.status];
+      $('status').className = `badge ${ev.status}`;
+      $('total').textContent = ev.total.toLocaleString();
+      $('guests').textContent = ev.guests;
+      $('start').disabled = ev.status === 'open';
+      $('pause').disabled = ev.status !== 'open';
+    }
+
+    async function action(name) {
+      ({ event: ev } = await api(`/api/events/${eventId}/${name}`, { method: 'POST', body: {} }));
+      render();
+    }
+
+    api('/api/me').then(async ({ user }) => {
+      $('topbar').innerHTML = topbar(user);
+      ({ event: ev } = await api(`/api/events/${eventId}`));
+      $('guest-url').value = ev.guestUrl;
+      $('guest-open').href = ev.guestUrl;
+      $('display-url').value = ev.displayUrl;
+      $('display-open').href = ev.displayUrl;
+      $('qr').src = `/api/events/${eventId}/qr`;
+      $('new-title').value = ev.title;
+      render();
+
+      // 合計表示と同じチャンネルでライブ更新を受け取る
+      const socket = io();
+      const join = () => socket.emit('join-display', { slug: ev.slug, key: ev.displayKey }, () => {});
+      socket.on('connect', join);
+      socket.on('total', ({ total }) => { ev.total = total; render(); });
+      socket.on('guests', ({ guests }) => { ev.guests = guests; render(); });
+      socket.on('state', (s) => { Object.assign(ev, s); render(); });
+    });
+
+    $('start').onclick = () => action('start');
+    $('pause').onclick = () => action('pause');
+    $('reset').onclick = () => {
+      if (confirm('合計と参加者の回数を 0 に戻します。よろしいですか？')) action('reset');
+    };
+    $('rename').onsubmit = async (e) => {
+      e.preventDefault();
+      ({ event: ev } = await api(`/api/events/${eventId}`, { method: 'PATCH', body: { title: $('new-title').value } }));
+      render();
+    };
+    $('delete').onclick = async () => {
+      if (!confirm('このイベントを削除します。元に戻せません。よろしいですか？')) return;
+      await api(`/api/events/${eventId}`, { method: 'DELETE' });
+      location.href = '/room';
+    };
+    document.querySelectorAll('[data-copy]').forEach((b) => {
+      b.onclick = async () => {
+        const input = $(b.dataset.copy);
+        input.select();
+        try { await navigator.clipboard.writeText(input.value); } catch { document.execCommand('copy'); }
+        b.textContent = 'コピーしました';
+        setTimeout(() => (b.textContent = 'コピー'), 1500);
+      };
+    });
+  </script>
+</body>
+</html>

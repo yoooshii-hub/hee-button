@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>へぇ 合計表示</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="display">
+  <main class="display-wrap" id="wrap">
+    <div class="display-title" id="title"></div>
+    <button class="btn ghost fs-btn" id="fs" type="button">全画面</button>
+
+    <div class="counter" id="counter">
+      <span class="digits" id="total">0</span>
+      <span class="unit">へぇ</span>
+    </div>
+    <div class="meter" title="いまの盛り上がり"><div id="meter"></div></div>
+
+    <div class="display-foot">
+      <div>
+        <span class="display-state" id="state">接続中…</span>
+        <span style="margin-left:1em">参加者 <b id="guests">0</b> 人</span>
+      </div>
+      <div style="text-align:right">
+        <img id="qr" alt="参加用QRコード">
+        <div id="guest-url" style="font-size:.8em;margin-top:4px;opacity:.8"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const slug = location.pathname.split('/').pop();
+    const key = new URLSearchParams(location.search).get('key');
+    const socket = io();
+    const STATE_LABEL = { ready: '開始前', open: '受付中', paused: '一時停止' };
+
+    let shown = 0;     // 表示中の数（目標値へ向けてカウントアップ）
+    let target = 0;
+    let recent = [];   // 直近の押下 [時刻, 数]
+
+    $('qr').src = `/api/display/${slug}/qr?key=${encodeURIComponent(key || '')}`;
+    $('guest-url').textContent = `${location.origin}/e/${slug}`;
+
+    function setState(s) {
+      $('title').textContent = s.title;
+      document.title = `${s.title} - へぇ 合計`;
+      $('state').textContent = STATE_LABEL[s.status];
+      $('state').className = `display-state ${s.status}`;
+      if (typeof s.guests === 'number') $('guests').textContent = s.guests;
+      if (typeof s.total === 'number') setTarget(s.total, true);
+    }
+
+    function setTarget(total, immediate) {
+      target = total;
+      if (immediate || total < shown) {
+        shown = total;
+        $('total').textContent = shown.toLocaleString();
+      }
+    }
+
+    // 数字を滑らかにカウントアップする
+    function tick() {
+      if (shown < target) {
+        shown += Math.max(1, Math.ceil((target - shown) / 6));
+        if (shown > target) shown = target;
+        $('total').textContent = shown.toLocaleString();
+        const c = $('counter');
+        c.classList.remove('bump');
+        void c.offsetWidth;
+        c.classList.add('bump');
+      }
+      const now = Date.now();
+      recent = recent.filter(([t]) => now - t < 2000);
+      const perSec = recent.reduce((s, [, n]) => s + n, 0) / 2;
+      // 1秒あたり 30 へぇ で満タン
+      $('meter').style.width = `${Math.min(100, (perSec / 30) * 100)}%`;
+      setTimeout(tick, 60);
+    }
+    tick();
+
+    function bubbles(n) {
+      const wrap = $('wrap');
+      for (let i = 0; i < Math.min(n, 12); i++) {
+        setTimeout(() => {
+          const b = document.createElement('div');
+          b.className = 'bubble';
+          b.textContent = 'へぇ';
+          b.style.left = `${5 + Math.random() * 88}%`;
+          b.style.fontSize = `${28 + Math.random() * 44}px`;
+          b.style.setProperty('--dur', `${1.6 + Math.random() * 1.4}s`);
+          wrap.appendChild(b);
+          setTimeout(() => b.remove(), 3200);
+        }, Math.random() * 100);
+      }
+    }
+
+    socket.on('connect', () => {
+      socket.emit('join-display', { slug, key }, (res) => {
+        if (res.error) {
+          $('title').textContent = '表示ページのURLが正しくありません';
+          $('state').textContent = 'エラー';
+          return;
+        }
+        setState(res.state);
+      });
+    });
+    socket.on('disconnect', () => ($('state').textContent = '再接続中…'));
+    socket.on('state', setState);
+    socket.on('guests', ({ guests }) => ($('guests').textContent = guests));
+    socket.on('total', ({ total, delta }) => {
+      setTarget(total, delta === 0);
+      if (delta > 0) {
+        recent.push([Date.now(), delta]);
+        bubbles(delta);
+      }
+    });
+    socket.on('deleted', () => ($('title').textContent = 'このイベントは削除されました'));
+
+    $('fs').onclick = () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen?.();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "hee-button",
+  "version": "1.0.0",
+  "description": "トリビアの泉風 へぇボタン（イベント用リアルタイム集計）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.22.3",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}

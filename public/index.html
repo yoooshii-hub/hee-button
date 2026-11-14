@@ -16,14 +16,14 @@
         <button id="tab-register" type="button">アカウント作成</button>
       </div>
       <form id="form">
-        <div id="name-field" hidden>
-          <label for="name">お名前（表示名）</label>
-          <input id="name" type="text" autocomplete="nickname">
-        </div>
-        <label for="email">メールアドレス</label>
-        <input id="email" type="email" autocomplete="email" required>
+        <label for="username">ユーザー名</label>
+        <input id="username" type="text" autocomplete="username" autocapitalize="off" required maxlength="40">
         <label for="password">パスワード（8文字以上）</label>
         <input id="password" type="password" autocomplete="current-password" required minlength="8">
+        <div id="code-field" hidden>
+          <label for="code">招待コード</label>
+          <input id="code" type="text" autocomplete="off" autocapitalize="off">
+        </div>
         <div class="error" id="error"></div>
         <button class="btn" style="width:100%;margin-top:8px" id="submit">ログイン</button>
       </form>
@@ -38,7 +38,7 @@
       mode = m;
       $('tab-login').classList.toggle('active', m === 'login');
       $('tab-register').classList.toggle('active', m === 'register');
-      $('name-field').hidden = m === 'login';
+      $('code-field').hidden = m === 'login';
       $('submit').textContent = m === 'login' ? 'ログイン' : 'アカウントを作成';
       $('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
       $('error').textContent = '';
@@ -55,7 +55,7 @@
         await api(mode === 'login' ? '/api/login' : '/api/register', {
           method: 'POST',
           allow401: true,
-          body: { name: $('name').value, email: $('email').value, password: $('password').value },
+          body: { username: $('username').value, password: $('password').value, code: $('code').value },
         });
         location.href = '/room';
       } catch (err) {

@@ -8,12 +8,22 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="guest">
+  <div class="splash" id="splash">
+    <div class="t" id="splash-title">へぇボタン</div>
+    <button class="btn go" id="go" type="button">タップして参加</button>
+    <small>音が出ます。音量を確認してください</small>
+  </div>
+
   <button class="btn ghost sound-toggle" id="sound" type="button">🔊 音あり</button>
   <main class="guest-wrap">
-    <div class="guest-title" id="title">読み込み中…</div>
+    <div class="guest-top">
+      <div class="guest-title" id="title">読み込み中…</div>
+      <div class="guest-presenter" id="presenter"></div>
+      <div class="guest-total">みんなの <span id="total-label">へぇ</span><b id="total">0</b></div>
+    </div>
 
     <div class="hee-stage" id="stage">
-      <button class="hee-button" id="hee" type="button" aria-label="へぇ" disabled>
+      <button class="hee-button" id="hee" type="button" aria-label="へぇ" data-opt="0" disabled>
         <svg viewBox="0 0 400 400" aria-hidden="true">
           <defs>
             <linearGradient id="hbFront" x1="0" y1="0" x2="0" y2="1">
@@ -101,123 +111,19 @@
       <div class="my-count"><div class="num" id="count">0</div></div>
     </div>
 
+    <div class="extra-buttons" id="extras"></div>
+
     <div class="status-msg" id="msg">接続しています…</div>
   </main>
 
+  <section class="guest-ranking" id="ranking" hidden>
+    <h2>最終ランキング</h2>
+    <div class="rk-host" id="rank-host"></div>
+  </section>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/hee-sound.js"></script>
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const slug = location.pathname.split('/').pop();
-    const button = $('hee');
-    const socket = io();
-
-    let state = null; // { title, status, round }
-    let myCount = 0;
-    let soundOn = true;
-
-    const MESSAGES = {
-      ready: '開始までお待ちください',
-      open: 'ボタンを押して「へぇ」を送ろう！',
-      paused: '一時停止中です',
-    };
-
-    function render() {
-      const canPress = socket.connected && state && state.status === 'open';
-      button.disabled = !canPress;
-      if (!state) return;
-      $('title').textContent = state.title;
-      document.title = `へぇボタン - ${state.title}`;
-      $('msg').textContent = socket.connected ? MESSAGES[state.status] : '再接続しています…';
-      $('msg').className = `status-msg ${canPress ? 'open' : ''}`;
-    }
-
-    function setCount(n, animate) {
-      myCount = n;
-      const el = $('count');
-      el.textContent = n.toLocaleString();
-      if (animate) {
-        el.classList.remove('bump');
-        void el.offsetWidth;
-        el.classList.add('bump');
-      }
-    }
-
-    function applyState(s) {
-      if (state && s.round !== state.round) setCount(0, false); // 管理者がリセットした
-      state = s;
-      render();
-    }
-
-    function join() {
-      socket.emit('join-guest', { slug }, (res) => {
-        if (res.error) {
-          $('title').textContent = 'イベントが見つかりません';
-          $('msg').textContent = 'URLをご確認ください';
-          state = null;
-          button.disabled = true;
-          return;
-        }
-        applyState(res.state);
-      });
-    }
-
-    socket.on('connect', join);
-    socket.on('disconnect', render);
-    socket.on('state', applyState);
-    socket.on('deleted', () => {
-      state = null;
-      button.disabled = true;
-      $('title').textContent = 'このイベントは終了しました';
-      $('msg').textContent = 'ご参加ありがとうございました';
-    });
-
-    function effects() {
-      if (soundOn) HeeSound.play();
-      if (navigator.vibrate) navigator.vibrate(15);
-      button.classList.add('pressed');
-      setTimeout(() => button.classList.remove('pressed'), 90);
-
-      const stage = $('stage');
-      const ripple = document.createElement('div');
-      ripple.className = 'ripple';
-      stage.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 520);
-
-      const pop = document.createElement('div');
-      pop.className = 'pop';
-      pop.textContent = 'へぇ';
-      pop.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 160)}px`);
-      stage.appendChild(pop);
-      setTimeout(() => pop.remove(), 720);
-    }
-
-    function press(e) {
-      if (e) e.preventDefault();
-      if (button.disabled) return;
-      effects();
-      setCount(myCount + 1, true); // 即座に反映し、サーバーで数えられなかった分だけ戻す
-      const round = state.round;
-      socket.timeout(5000).emit('hee', { round }, (err, res) => {
-        if (err || !res.ok) {
-          if (state && state.round === round) setCount(Math.max(0, myCount - 1), false);
-          if (res && res.state) applyState(res.state);
-        }
-      });
-    }
-
-    // タップの遅延をなくすため pointerdown で反応する
-    button.addEventListener('pointerdown', press);
-    button.addEventListener('keydown', (e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) press(e);
-    });
-    button.addEventListener('contextmenu', (e) => e.preventDefault());
-    document.addEventListener('touchend', HeeSound.unlock, { once: true });
-
-    $('sound').onclick = () => {
-      soundOn = !soundOn;
-      $('sound').textContent = soundOn ? '🔊 音あり' : '🔇 音なし';
-    };
-  </script>
+  <script src="/js/ranking.js"></script>
+  <script src="/js/guest.js"></script>
 </body>
 </html>

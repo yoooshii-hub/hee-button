@@ -18,14 +18,14 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-const STATUS_LABEL = { ready: '開始前', open: '受付中', paused: '一時停止' };
+const STATUS_LABEL = { ready: '準備中', live: '開催中', ended: '終了' };
 
 function topbar(user) {
   return `
     <header class="topbar">
       <a class="brand" href="/room">へぇ<span>ボタン</span></a>
       <div class="row">
-        <span class="muted" style="color:#c9c6e6">${escapeHtml(user.name)} さん</span>
+        <span class="muted" style="color:#c9c6e6">${escapeHtml(user.username)} さん</span>
         <button class="btn ghost" onclick="api('/api/logout',{method:'POST',body:{}}).then(()=>location.href='/')">ログアウト</button>
       </div>
     </header>`;

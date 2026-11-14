@@ -35,18 +35,27 @@
         <li>
           <div>
             <a class="title" href="/room/events/${ev.id}">${escapeHtml(ev.title)}</a>
-            <div class="muted">合計 ${ev.total.toLocaleString()} へぇ ・ ${new Date(ev.createdAt).toLocaleDateString('ja-JP')}</div>
+            <div class="muted">保存済み ${ev.savedCount} セッション ・ 接続中 ${ev.guests} 人 ・ ${new Date(ev.createdAt).toLocaleDateString('ja-JP')}</div>
           </div>
           <div class="row">
             <span class="badge ${ev.status}">${STATUS_LABEL[ev.status]}</span>
             <a class="btn secondary" href="/room/events/${ev.id}">管理</a>
+            <button class="btn secondary" data-reset="${ev.id}" data-title="${escapeHtml(ev.title)}">リセット</button>
           </div>
         </li>`).join('');
+      document.querySelectorAll('[data-reset]').forEach((b) => {
+        b.onclick = async () => {
+          if (!confirm(`「${b.dataset.title}」のセッションをすべてクリアします。保存済みの結果も消えます。よろしいですか？`)) return;
+          await api(`/api/events/${b.dataset.reset}/reset-event`, { method: 'POST', body: {} });
+          load();
+        };
+      });
     }
 
     api('/api/me').then(({ user }) => {
       $('topbar').innerHTML = topbar(user);
       load();
+      setInterval(load, 15000);
     });
 
     $('create').onsubmit = async (e) => {

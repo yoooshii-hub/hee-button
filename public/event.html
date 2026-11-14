@@ -8,77 +8,236 @@
 </head>
 <body>
   <div id="topbar"></div>
-  <main class="wrap">
+  <main class="wrap wide">
     <p><a href="/room">← マイルームに戻る</a></p>
-    <div class="row" style="justify-content:space-between">
-      <h1 id="title" style="margin:0"></h1>
-      <span class="badge" id="status"></span>
-    </div>
-    <p class="muted">接続中の参加者: <b id="guests">0</b> 人</p>
-
-    <div class="card">
-      <h2>進行</h2>
-      <div class="big-total"><span id="total">0</span><small>へぇ</small></div>
-      <div class="row" style="justify-content:center;margin-top:8px">
-        <button class="btn ok" id="start">▶ 開始（ボタン受付）</button>
-        <button class="btn warn" id="pause">❚❚ 一時停止</button>
-        <button class="btn secondary" id="reset">↺ リセット</button>
+    <div class="status-row">
+      <div class="row">
+        <h1 id="title" style="margin:0"></h1>
+        <span class="badge" id="status"></span>
       </div>
-      <p class="muted" style="text-align:center">リセットすると合計と参加者の回数が 0 に戻り、再び「開始」するまで押せなくなります。</p>
+      <div class="row">
+        <span class="muted">接続中 <b id="guests">0</b> 人</span>
+        <button class="btn ok" id="start">イベントを開始</button>
+        <button class="btn secondary" id="end">イベントを終了</button>
+        <button class="btn ok" id="resume">イベントを再開</button>
+      </div>
     </div>
 
-    <div class="grid2">
-      <div class="card">
-        <h2>参加者用 URL / QR コード</h2>
-        <img class="qr" id="qr" alt="参加者用QRコード">
-        <div class="url-box" style="margin-top:12px">
-          <input type="text" id="guest-url" readonly>
-          <button class="btn secondary" data-copy="guest-url">コピー</button>
+    <div class="event-layout">
+      <div>
+        <div class="card">
+          <div class="session-head">
+            <h2 style="margin:0">現在のセッション <span id="cur-no"></span></h2>
+            <span class="badge" id="accepting"></span>
+          </div>
+          <p class="notice" id="restored-note" hidden></p>
+          <div class="presenter-input">
+            <label for="presenter" style="margin:0;white-space:nowrap">発表者</label>
+            <input type="text" id="presenter" maxlength="60" placeholder="例: 山田さん（保存前から入力できます）">
+          </div>
+          <div class="counts-row" id="counts"></div>
+          <div class="row" style="justify-content:center;margin-top:12px">
+            <button class="btn ok" id="accept-toggle">投票受付を開始</button>
+            <button class="btn secondary" id="reset-session">このセッションをリセット</button>
+            <button class="btn" id="save">保存して次へ</button>
+          </div>
+          <label class="check"><input type="checkbox" id="auto-start"> 保存後、次のセッションの投票受付をすぐに開始する</label>
         </div>
-        <p><a id="guest-open" target="_blank" rel="noopener">参加者ページを開く ↗</a></p>
-      </div>
-      <div class="card">
-        <h2>合計表示ページ</h2>
-        <p class="muted">会場のスクリーンやプロジェクターに映すページです。押されるたびにリアルタイムで数が増え、「へぇ」が舞い上がります。</p>
-        <a class="btn" id="display-open" target="_blank" rel="noopener" style="width:100%">合計表示ページを開く ↗</a>
-        <div class="url-box" style="margin-top:12px">
-          <input type="text" id="display-url" readonly>
-          <button class="btn secondary" data-copy="display-url">コピー</button>
-        </div>
-        <p class="muted">このURLを知っている人は合計を見られます（操作はできません）。</p>
-      </div>
-    </div>
 
-    <div class="card">
-      <h2>設定</h2>
-      <form id="rename" class="row">
-        <input id="new-title" type="text" style="flex:1;min-width:200px" maxlength="80">
-        <button class="btn secondary">名前を変更</button>
-      </form>
-      <p style="margin-top:16px"><button class="btn secondary" id="delete" style="color:var(--accent-dark)">このイベントを削除</button></p>
+        <div class="card">
+          <h2>合計表示ページ（プロジェクター用）</h2>
+          <div class="row">
+            <a class="btn" id="display-open" target="_blank" rel="noopener">合計表示ページを開く ↗</a>
+            <div class="seg" role="group" aria-label="表示の切り替え">
+              <button id="view-count" type="button">投票数</button>
+              <button id="view-ranking" type="button">ランキング</button>
+            </div>
+            <button class="btn secondary" id="replay">再演出</button>
+            <button class="btn secondary" id="display-zero">表示を0に戻す</button>
+          </div>
+          <p class="muted">「表示を0に戻す」は合計表示の数字だけを0にします。保存済みの結果や集計には影響しません。</p>
+          <div class="url-box">
+            <input type="text" id="display-url" readonly aria-label="合計表示ページのURL">
+            <button class="btn secondary" data-copy="display-url">コピー</button>
+          </div>
+          <p class="muted">このURLは秘密です。参加者には共有しないでください。</p>
+        </div>
+
+        <div class="card">
+          <h2>参加者用 URL / QR コード</h2>
+          <div class="row" style="align-items:flex-start">
+            <img class="qr" id="qr" alt="参加者用QRコード" style="max-width:180px;margin:0">
+            <div style="flex:1;min-width:220px">
+              <div class="url-box">
+                <input type="text" id="guest-url" readonly aria-label="参加者用URL">
+                <button class="btn secondary" data-copy="guest-url">コピー</button>
+              </div>
+              <p class="row" style="margin-top:12px">
+                <button class="btn secondary" id="qr-big">QRコードを拡大表示</button>
+                <a id="guest-open" target="_blank" rel="noopener">参加者ページを開く ↗</a>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>設定</h2>
+          <form id="rename" class="row">
+            <input id="new-title" type="text" style="flex:1;min-width:200px" maxlength="80" aria-label="イベント名">
+            <button class="btn secondary">名前を変更</button>
+          </form>
+          <label for="options">ボタン（カンマ区切りで最大4つ。最初のボタンの票でランキングします）</label>
+          <form id="options-form" class="row">
+            <input id="options" type="text" style="flex:1;min-width:200px" placeholder="へぇ">
+            <button class="btn secondary">ボタンを変更</button>
+          </form>
+          <p style="margin-top:16px"><button class="btn secondary" id="delete" style="color:var(--accent-dark)">このイベントを削除</button></p>
+          <div class="error" id="error"></div>
+        </div>
+      </div>
+
+      <aside class="card side">
+        <div class="session-head">
+          <h2 style="margin:0">保存済みセッション</h2>
+          <div class="row">
+            <button class="btn secondary small" id="show-ranking">ランキング</button>
+            <a class="btn secondary small" id="csv">CSV出力</a>
+          </div>
+        </div>
+        <ul class="saved-list" id="saved"></ul>
+        <p class="muted" id="saved-empty">まだありません。「保存して次へ」で結果がここに並びます。</p>
+      </aside>
     </div>
   </main>
+
+  <div class="modal" id="qr-modal" hidden>
+    <div class="modal-qr">
+      <img id="qr-large" alt="参加者用QRコード（拡大）">
+      <div class="u" id="qr-url"></div>
+      <p><button class="btn secondary" data-close>閉じる</button></p>
+    </div>
+  </div>
+
+  <div class="modal" id="rank-modal" hidden>
+    <div class="modal-box">
+      <h2>ランキング（「<span id="rank-opt"></span>」の票が多い順）</h2>
+      <ol class="admin-rank" id="rank-list"></ol>
+      <p class="muted">保存していないセッションは含まれません。</p>
+      <p><button class="btn secondary" data-close>閉じる</button></p>
+    </div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/common.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const eventId = location.pathname.split('/').pop();
+    const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
     let ev;
+    let presenterTimer = null;
+
+    const fmtDate = (t) => new Date(t).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const sessionLabel = (s) => (s.presenter ? escapeHtml(s.presenter) : `セッション ${s.no}`);
+
+    function showError(err) {
+      $('error').textContent = err ? err.message || String(err) : '';
+    }
+
+    function renderCounts() {
+      const total = ev.counts.reduce((a, b) => a + b, 0);
+      $('counts').innerHTML = ev.options.map((o, i) => `
+        <div class="opt ${i ? 'sub' : ''}">
+          <div class="n">${ev.counts[i].toLocaleString()}</div>
+          <div class="l">${escapeHtml(o)}</div>
+        </div>`).join('') + (ev.options.length > 1 ? `<div class="opt sub"><div class="n">${total.toLocaleString()}</div><div class="l">合計</div></div>` : '');
+    }
+
+    function renderSaved() {
+      $('saved-empty').hidden = ev.saved.length > 0;
+      $('saved').innerHTML = ev.saved.map((s) => {
+        const max = Math.max(1, ...s.counts);
+        return `
+        <li class="saved-item">
+          <div class="top">
+            <span class="no">#${s.no}</span>
+            <span class="name">${sessionLabel(s)}</span>
+            ${s.best ? '<span class="star">最多★</span>' : ''}
+            ${ev.restoredId === s.id ? '<span class="editing">復元中</span>' : ''}
+          </div>
+          <div class="bars">
+            ${ev.options.map((o, i) => `
+              <div class="bar-row"><span>${escapeHtml(o)}</span><span class="track"><i style="width:${Math.round((s.counts[i] / max) * 100)}%"></i></span><span class="v">${s.counts[i].toLocaleString()}</span></div>`).join('')}
+          </div>
+          <div class="meta">合計 ${s.total.toLocaleString()} 票 ・ ${fmtDate(s.savedAt)} 保存</div>
+          <div class="actions">
+            <button class="btn secondary small" data-rename="${s.id}">名前変更</button>
+            <button class="btn secondary small" data-restore="${s.id}">復元</button>
+            <button class="btn secondary small" data-del="${s.id}" style="color:var(--accent-dark)">削除</button>
+          </div>
+        </li>`;
+      }).join('');
+    }
 
     function render() {
       document.title = `${ev.title} - イベント管理`;
       $('title').textContent = ev.title;
       $('status').textContent = STATUS_LABEL[ev.status];
       $('status').className = `badge ${ev.status}`;
-      $('total').textContent = ev.total.toLocaleString();
       $('guests').textContent = ev.guests;
-      $('start').disabled = ev.status === 'open';
-      $('pause').disabled = ev.status !== 'open';
+      $('start').hidden = ev.status !== 'ready';
+      $('end').hidden = ev.status !== 'live';
+      $('resume').hidden = ev.status !== 'ended';
+
+      $('cur-no').textContent = `#${ev.no}`;
+      const live = ev.status === 'live';
+      $('accepting').textContent = live && ev.accepting ? '投票受付中' : '受付停止中';
+      $('accepting').className = `badge ${live && ev.accepting ? 'accepting' : 'stopped'}`;
+      $('accept-toggle').textContent = ev.accepting ? '投票受付を一時停止' : '投票受付を開始';
+      $('accept-toggle').className = `btn ${ev.accepting ? 'warn' : 'ok'}`;
+      $('accept-toggle').disabled = !live;
+      const restored = ev.restoredId && ev.saved.find((s) => s.id === ev.restoredId);
+      $('restored-note').hidden = !restored;
+      if (restored) $('restored-note').textContent = `保存済みの #${restored.no} を復元して編集中です。「保存して次へ」で上書き保存されます。`;
+      if (document.activeElement !== $('presenter')) $('presenter').value = ev.presenter;
+      $('auto-start').checked = ev.autoStartNext;
+      renderCounts();
+
+      $('view-count').classList.toggle('on', ev.view === 'count');
+      $('view-ranking').classList.toggle('on', ev.view === 'ranking');
+      renderSaved();
+      if (!$('rank-modal').hidden) renderRanking();
     }
 
-    async function action(name) {
-      ({ event: ev } = await api(`/api/events/${eventId}/${name}`, { method: 'POST', body: {} }));
-      render();
+    function renderRanking() {
+      $('rank-opt').textContent = ev.options[0];
+      $('rank-list').innerHTML = ev.ranking.length
+        ? ev.ranking.map((r) => `
+          <li>
+            <span class="pos">${MEDALS[r.rank] || `${r.rank}位`}</span>
+            <span><b>${sessionLabel(r)}</b>${r.tie ? '<span class="tie">同率</span>' : ''}</span>
+            <span><b>${r.hee.toLocaleString()}</b> ${escapeHtml(ev.options[0])}</span>
+          </li>`).join('')
+        : '<li><span></span><span class="muted">保存済みのセッションがありません</span><span></span></li>';
+    }
+
+    async function call(path, body = {}, method = 'POST') {
+      showError();
+      try {
+        const res = await api(`/api/events/${eventId}${path}`, { method, body });
+        if (res.event) {
+          ev = { ...ev, ...res.event };
+          render();
+        }
+        return res;
+      } catch (err) {
+        showError(err);
+        throw err;
+      }
+    }
+
+    function savePresenterSoon() {
+      clearTimeout(presenterTimer);
+      presenterTimer = setTimeout(() => call('', { presenter: $('presenter').value }, 'PATCH'), 400);
     }
 
     api('/api/me').then(async ({ user }) => {
@@ -89,30 +248,101 @@
       $('display-url').value = ev.displayUrl;
       $('display-open').href = ev.displayUrl;
       $('qr').src = `/api/events/${eventId}/qr`;
+      $('qr-large').src = `/api/events/${eventId}/qr?size=large`;
+      $('qr-url').textContent = ev.guestUrl;
+      $('csv').href = `/api/events/${eventId}/csv`;
       $('new-title').value = ev.title;
+      $('options').value = ev.options.join(', ');
       render();
 
       // 合計表示と同じチャンネルでライブ更新を受け取る
       const socket = io();
-      const join = () => socket.emit('join-display', { slug: ev.slug, key: ev.displayKey }, () => {});
-      socket.on('connect', join);
-      socket.on('total', ({ total }) => { ev.total = total; render(); });
-      socket.on('guests', ({ guests }) => { ev.guests = guests; render(); });
-      socket.on('state', (s) => { Object.assign(ev, s); render(); });
+      socket.on('connect', () => socket.emit('join-display', { slug: ev.slug, key: ev.displayKey }, (res) => {
+        if (res.state) { ev = { ...ev, ...res.state }; render(); }
+      }));
+      socket.on('state', (s) => { ev = { ...ev, ...s }; render(); });
+      socket.on('tally', (t) => {
+        if (t.round !== ev.round) return;
+        ev.counts = t.counts;
+        ev.dirty = true;
+        renderCounts();
+      });
+      socket.on('guests', ({ guests }) => { ev.guests = guests; $('guests').textContent = guests; });
     });
 
-    $('start').onclick = () => action('start');
-    $('pause').onclick = () => action('pause');
-    $('reset').onclick = () => {
-      if (confirm('合計と参加者の回数を 0 に戻します。よろしいですか？')) action('reset');
+    $('start').onclick = () => call('/start');
+    $('resume').onclick = () => call('/resume');
+    $('end').onclick = () => {
+      const unsaved = ev.counts.reduce((a, b) => a + b, 0);
+      const msg = unsaved
+        ? `現在のセッションに保存していない票が ${unsaved} 票あります。保存していないセッションはランキングに含まれません。\nこのまま終了しますか？（先に「保存して次へ」を押すと含まれます）`
+        : 'イベントを終了します。参加者は投票できなくなり、ランキングが表示されます。よろしいですか？';
+      if (confirm(msg)) call('/end');
     };
-    $('rename').onsubmit = async (e) => {
+    $('accept-toggle').onclick = () => call('/accepting', { on: !ev.accepting });
+    $('reset-session').onclick = () => {
+      if (confirm('このセッションの票をすべて 0 に戻します。参加者の回数も 0 になります。よろしいですか？')) call('/reset-session');
+    };
+    $('save').onclick = () => {
+      clearTimeout(presenterTimer);
+      const total = ev.counts.reduce((a, b) => a + b, 0);
+      if (!total && !confirm('このセッションはまだ 0 票です。保存しますか？')) return;
+      call('/save', { presenter: $('presenter').value });
+    };
+    $('presenter').addEventListener('input', savePresenterSoon);
+    $('auto-start').onchange = () => call('', { autoStartNext: $('auto-start').checked }, 'PATCH');
+
+    $('view-count').onclick = () => call('/view', { view: 'count' });
+    $('view-ranking').onclick = () => call('/view', { view: 'ranking' });
+    $('replay').onclick = () => call('/replay');
+    $('display-zero').onclick = () => {
+      if (confirm('合計表示の数字を 0 に戻します（保存済みの結果や集計には影響しません）。よろしいですか？')) call('/display-zero');
+    };
+
+    $('saved').onclick = async (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.rename) {
+        const s = ev.saved.find((x) => x.id === b.dataset.rename);
+        const name = prompt('発表者名', s.presenter);
+        if (name !== null) call(`/saved/${s.id}`, { presenter: name }, 'PATCH');
+      } else if (b.dataset.del) {
+        const s = ev.saved.find((x) => x.id === b.dataset.del);
+        if (confirm(`#${s.no}「${s.presenter || 'セッション ' + s.no}」を削除します。元に戻せません。よろしいですか？`)) {
+          call(`/saved/${s.id}`, {}, 'DELETE');
+        }
+      } else if (b.dataset.restore) {
+        const s = ev.saved.find((x) => x.id === b.dataset.restore);
+        if (ev.dirty) {
+          const unsaved = ev.counts.reduce((a, c) => a + c, 0);
+          if (!confirm(`現在のセッションに保存していない票が ${unsaved} 票あります。破棄して #${s.no} を復元しますか？`)) return;
+        }
+        call(`/saved/${s.id}/restore`, { force: true });
+      }
+    };
+
+    $('show-ranking').onclick = () => { renderRanking(); $('rank-modal').hidden = false; };
+    $('qr-big').onclick = () => ($('qr-modal').hidden = false);
+    document.querySelectorAll('.modal').forEach((m) => {
+      m.addEventListener('click', (e) => {
+        if (e.target === m || e.target.matches('[data-close]')) m.hidden = true;
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.querySelectorAll('.modal').forEach((m) => (m.hidden = true));
+    });
+
+    $('rename').onsubmit = (e) => {
       e.preventDefault();
-      ({ event: ev } = await api(`/api/events/${eventId}`, { method: 'PATCH', body: { title: $('new-title').value } }));
-      render();
+      call('', { title: $('new-title').value }, 'PATCH');
+    };
+    $('options-form').onsubmit = (e) => {
+      e.preventDefault();
+      const options = $('options').value.split(/[,、，]/).map((s) => s.trim()).filter(Boolean);
+      call('', { options }, 'PATCH').then(() => ($('options').value = ev.options.join(', ')));
     };
     $('delete').onclick = async () => {
-      if (!confirm('このイベントを削除します。元に戻せません。よろしいですか？')) return;
+      if (!confirm('このイベントを削除します。保存済みの結果もすべて消え、元に戻せません。よろしいですか？')) return;
       await api(`/api/events/${eventId}`, { method: 'DELETE' });
       location.href = '/room';
     };

@@ -8,49 +8,65 @@
 </head>
 <body class="display">
   <main class="display-wrap" id="wrap">
-    <div class="display-title" id="title"></div>
-    <button class="btn ghost fs-btn" id="fs" type="button">全画面</button>
-
-    <div class="counter" id="counter">
-      <span class="digits" id="total">0</span>
-      <span class="unit">へぇ</span>
+    <button class="btn ghost sound-hint" id="sound" type="button">🔇 クリックで音を有効にする</button>
+    <div class="display-tools">
+      <button class="btn ghost" id="replay" type="button" hidden>再演出</button>
+      <button class="btn ghost" id="fs" type="button">全画面</button>
     </div>
-    <div class="meter" title="いまの盛り上がり"><div id="meter"></div></div>
 
-    <div class="display-foot">
-      <div>
-        <span class="display-state" id="state">接続中…</span>
-        <span style="margin-left:1em">参加者 <b id="guests">0</b> 人</span>
+    <section id="count-view" class="display-wrap" style="width:100%">
+      <div class="display-title" id="title"></div>
+      <div class="display-presenter" id="presenter"></div>
+      <div class="counter" id="counter">
+        <span class="digits" id="total">0</span>
+        <span class="unit" id="unit">へぇ</span>
       </div>
-      <div style="text-align:right">
-        <img id="qr" alt="参加用QRコード">
-        <div id="guest-url" style="font-size:.8em;margin-top:4px;opacity:.8"></div>
+      <div class="display-subcounts" id="subcounts"></div>
+      <div class="meter" title="いまの盛り上がり"><div id="meter"></div></div>
+
+      <div class="display-foot">
+        <div>
+          <span class="display-state" id="state">接続中…</span>
+          <span style="margin-left:1em">参加者 <b id="guests">0</b> 人</span>
+        </div>
+        <div style="text-align:right">
+          <img id="qr" alt="参加用QRコード">
+          <div id="guest-url" style="font-size:.8em;margin-top:4px;opacity:.8"></div>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <section id="rank-view" class="display-ranking" hidden>
+      <h2>ランキング</h2>
+      <div class="rk-host" id="rank-host"></div>
+    </section>
   </main>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/hee-sound.js"></script>
+  <script src="/js/ranking.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const slug = location.pathname.split('/').pop();
     const key = new URLSearchParams(location.search).get('key');
     const socket = io();
-    const STATE_LABEL = { ready: '開始前', open: '受付中', paused: '一時停止' };
 
-    let shown = 0;     // 表示中の数（目標値へ向けてカウントアップ）
+    let st = null;
+    let offset = 0; // サーバー時計 - この端末の時計
+    let shown = 0; // 表示中の数（目標値へ向けてカウントアップ）
     let target = 0;
-    let recent = [];   // 直近の押下 [時刻, 数]
+    let recent = []; // 直近の押下 [時刻, 数]
+    let round = 0;
+    let stopShow = () => {};
+    let showKey = '';
 
     $('qr').src = `/api/display/${slug}/qr?key=${encodeURIComponent(key || '')}`;
     $('guest-url').textContent = `${location.origin}/e/${slug}`;
 
-    function setState(s) {
-      $('title').textContent = s.title;
-      document.title = `${s.title} - へぇ 合計`;
-      $('state').textContent = STATE_LABEL[s.status];
-      $('state').className = `display-state ${s.status}`;
-      if (typeof s.guests === 'number') $('guests').textContent = s.guests;
-      if (typeof s.total === 'number') setTarget(s.total, true);
+    function stateLabel(s) {
+      if (s.status === 'ready') return ['まもなく開始', ''];
+      if (s.status === 'ended') return ['終了', ''];
+      return s.accepting ? ['投票受付中', 'open'] : ['受付停止中', ''];
     }
 
     function setTarget(total, immediate) {
@@ -58,6 +74,47 @@
       if (immediate || total < shown) {
         shown = total;
         $('total').textContent = shown.toLocaleString();
+      }
+    }
+
+    function renderSub(counts) {
+      $('subcounts').innerHTML = st.options.length > 1
+        ? st.options.slice(1).map((o, i) => `<span>${o.replace(/[&<>]/g, '')}<b>${(counts[i + 1] || 0).toLocaleString()}</b></span>`).join('')
+        : '';
+    }
+
+    function startRanking(force) {
+      const k = JSON.stringify([st.playAt, st.ranking]);
+      if (!force && k === showKey) return;
+      showKey = k;
+      stopShow();
+      stopShow = RankingShow.play($('rank-host'), st.ranking || [], (force ? Date.now() : st.playAt - offset), { sound: HeeSound.unlocked });
+    }
+
+    function apply(s) {
+      offset = s.serverNow - Date.now();
+      const roundChanged = s.round !== round;
+      round = s.round;
+      st = s;
+      $('title').textContent = s.title;
+      document.title = `${s.title} - へぇ 合計`;
+      $('presenter').innerHTML = s.presenter ? `<small>NOW PRESENTING</small>${s.presenter.replace(/[&<>]/g, '')}` : '';
+      $('unit').textContent = s.options[0];
+      const [label, cls] = stateLabel(s);
+      $('state').textContent = label;
+      $('state').className = `display-state ${cls}`;
+      if (typeof s.guests === 'number') $('guests').textContent = s.guests;
+      setTarget(s.shown[0], roundChanged || s.shown[0] < shown);
+      renderSub(s.shown);
+
+      const ranking = s.view === 'ranking';
+      $('count-view').hidden = ranking;
+      $('rank-view').hidden = !ranking;
+      $('replay').hidden = !ranking;
+      if (ranking) startRanking(false);
+      else {
+        stopShow();
+        showKey = '';
       }
     }
 
@@ -74,7 +131,7 @@
       }
       const now = Date.now();
       recent = recent.filter(([t]) => now - t < 2000);
-      const perSec = recent.reduce((s, [, n]) => s + n, 0) / 2;
+      const perSec = recent.reduce((a, [, n]) => a + n, 0) / 2;
       // 1秒あたり 30 へぇ で満タン
       $('meter').style.width = `${Math.min(100, (perSec / 30) * 100)}%`;
       setTimeout(tick, 60);
@@ -82,12 +139,13 @@
     tick();
 
     function bubbles(n) {
-      const wrap = $('wrap');
+      if (!st || st.view !== 'count') return;
+      const wrap = $('count-view');
       for (let i = 0; i < Math.min(n, 12); i++) {
         setTimeout(() => {
           const b = document.createElement('div');
           b.className = 'bubble';
-          b.textContent = 'へぇ';
+          b.textContent = st.options[0];
           b.style.left = `${5 + Math.random() * 88}%`;
           b.style.fontSize = `${28 + Math.random() * 44}px`;
           b.style.setProperty('--dur', `${1.6 + Math.random() * 1.4}s`);
@@ -104,22 +162,34 @@
           $('state').textContent = 'エラー';
           return;
         }
-        setState(res.state);
+        apply(res.state);
       });
     });
     socket.on('disconnect', () => ($('state').textContent = '再接続中…'));
-    socket.on('state', setState);
+    socket.on('state', apply);
     socket.on('guests', ({ guests }) => ($('guests').textContent = guests));
-    socket.on('total', ({ total, delta }) => {
-      setTarget(total, delta === 0);
-      if (delta > 0) {
-        recent.push([Date.now(), delta]);
-        bubbles(delta);
+    socket.on('tally', (t) => {
+      if (!st || t.round !== round) return;
+      setTarget(t.shown[0], false);
+      renderSub(t.shown);
+      if (t.delta > 0) {
+        recent.push([Date.now(), t.delta]);
+        bubbles(t.delta);
       }
     });
     socket.on('deleted', () => ($('title').textContent = 'このイベントは削除されました'));
 
+    function enableSound() {
+      HeeSound.unlock();
+      $('sound').hidden = true;
+    }
+    $('sound').onclick = enableSound;
+    $('replay').onclick = () => {
+      enableSound();
+      startRanking(true);
+    };
     $('fs').onclick = () => {
+      enableSound();
       if (document.fullscreenElement) document.exitFullscreen();
       else document.documentElement.requestFullscreen?.();
     };

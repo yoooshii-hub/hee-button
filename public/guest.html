@@ -12,49 +12,93 @@
   <main class="guest-wrap">
     <div class="guest-title" id="title">読み込み中…</div>
 
-    <div class="my-count">
-      <div class="num" id="count">0</div>
-      <div class="label">あなたの へぇ</div>
-    </div>
-
     <div class="hee-stage" id="stage">
       <button class="hee-button" id="hee" type="button" aria-label="へぇ" disabled>
         <svg viewBox="0 0 400 400" aria-hidden="true">
           <defs>
-            <radialGradient id="domeGrad" cx="40%" cy="30%" r="75%">
-              <stop offset="0%" stop-color="#ff9fb0"/>
-              <stop offset="45%" stop-color="#f0405c"/>
-              <stop offset="100%" stop-color="#a5142d"/>
+            <linearGradient id="hbFront" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#cfe3ee"/>
+              <stop offset="100%" stop-color="#a8c4d6"/>
+            </linearGradient>
+            <linearGradient id="hbTop" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#e4f0f6"/>
+              <stop offset="100%" stop-color="#cbe0ec"/>
+            </linearGradient>
+            <linearGradient id="hbRing" x1="0" x2="1">
+              <stop offset="0%" stop-color="#103a94"/>
+              <stop offset="28%" stop-color="#3f86ec"/>
+              <stop offset="55%" stop-color="#2a68d6"/>
+              <stop offset="100%" stop-color="#0d2f7c"/>
+            </linearGradient>
+            <radialGradient id="hbDome" cx="42%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity=".95"/>
+              <stop offset="60%" stop-color="#dfe7ee" stop-opacity=".9"/>
+              <stop offset="100%" stop-color="#9fb1c2" stop-opacity=".95"/>
             </radialGradient>
-            <linearGradient id="baseGrad" x1="0" x2="1">
-              <stop offset="0%" stop-color="#7a6a2a"/>
-              <stop offset="30%" stop-color="#f6d77a"/>
-              <stop offset="60%" stop-color="#d9a92e"/>
-              <stop offset="100%" stop-color="#6e5a1c"/>
-            </linearGradient>
-            <linearGradient id="podGrad" x1="0" x2="1">
-              <stop offset="0%" stop-color="#15123a"/>
-              <stop offset="50%" stop-color="#3a3478"/>
-              <stop offset="100%" stop-color="#110e2e"/>
-            </linearGradient>
+            <radialGradient id="hbStud" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="55%" stop-color="#bcd8f6"/>
+              <stop offset="100%" stop-color="#5a8fd6"/>
+            </radialGradient>
+            <radialGradient id="hbBlue" cx="35%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#8fb0ff"/>
+              <stop offset="100%" stop-color="#1f3fb0"/>
+            </radialGradient>
+            <pattern id="hbDimples" width="20" height="17" patternUnits="userSpaceOnUse">
+              <circle cx="10" cy="9" r="5.5" fill="rgba(110,130,150,.28)"/>
+              <circle cx="8.4" cy="7.2" r="1.8" fill="rgba(255,255,255,.95)"/>
+              <circle cx="0" cy="0.5" r="5.5" fill="rgba(110,130,150,.28)"/>
+              <circle cx="20" cy="0.5" r="5.5" fill="rgba(110,130,150,.28)"/>
+              <circle cx="-1.6" cy="-1.3" r="1.8" fill="rgba(255,255,255,.95)"/>
+              <circle cx="18.4" cy="-1.3" r="1.8" fill="rgba(255,255,255,.95)"/>
+            </pattern>
+            <clipPath id="hbDomeClip">
+              <path d="M72 150 A128 30 0 0 0 328 150 C328 5 72 5 72 150 Z"/>
+            </clipPath>
           </defs>
-          <ellipse cx="200" cy="350" rx="175" ry="34" fill="rgba(0,0,0,.45)"/>
+          <ellipse cx="200" cy="370" rx="192" ry="16" fill="rgba(0,0,0,.4)"/>
           <!-- 台座 -->
-          <path d="M30 270 v52 a170 44 0 0 0 340 0 v-52 z" fill="url(#podGrad)"/>
-          <ellipse cx="200" cy="270" rx="170" ry="44" fill="#2a2560"/>
-          <!-- 金のリング -->
-          <path d="M52 262 v18 a148 38 0 0 0 296 0 v-18 z" fill="url(#baseGrad)"/>
-          <ellipse cx="200" cy="262" rx="148" ry="38" fill="#3b2a08"/>
-          <!-- 押せるドーム -->
+          <path d="M44 204 H356 L386 252 H14 Z" fill="url(#hbTop)" stroke="#9fbccd" stroke-width="1.5" stroke-linejoin="round"/>
+          <rect x="14" y="250" width="372" height="108" rx="8" fill="url(#hbFront)" stroke="#8fb0c4" stroke-width="1.5"/>
+          <!-- 金の飾り枠 -->
+          <g fill="none" stroke="#e7bd2c" stroke-width="3" stroke-linecap="round">
+            <path d="M44 266 H118 M282 266 H356 M44 342 H118 M282 342 H356"/>
+            <path d="M36 274 V334 M364 274 V334"/>
+            <path d="M44 266 c-10 0 -10 10 -8 8 M356 266 c10 0 10 10 8 8 M44 342 c-10 0 -10 -10 -8 -8 M356 342 c10 0 10 -10 8 -8"/>
+            <path d="M118 266 c8 0 6 -7 1 -6 M282 266 c-8 0 -6 -7 -1 -6 M118 342 c8 0 6 7 1 6 M282 342 c-8 0 -6 7 -1 6"/>
+            <path d="M342 290 c10 -6 14 6 6 10 c8 4 4 16 -6 10"/>
+          </g>
+          <g fill="#3b6fd4">
+            <circle cx="36" cy="304" r="3.5"/><circle cx="364" cy="304" r="3.5"/>
+            <circle cx="200" cy="262" r="3"/><circle cx="200" cy="347" r="3"/>
+          </g>
+          <circle cx="352" cy="300" r="4" fill="#2bb0a0"/>
+          <circle cx="78" cy="304" r="20" fill="none" stroke="#e7bd2c" stroke-width="4" stroke-dasharray="5 4"/>
+          <circle cx="78" cy="304" r="10" fill="url(#hbBlue)" stroke="#e8eef6" stroke-width="2"/>
+          <!-- 数字の窓（数字は HTML で上に重ねる） -->
+          <rect x="128" y="271" width="144" height="64" rx="3" fill="#1c0505" stroke="#7f9fb3" stroke-width="3"/>
+          <text x="306" y="320" text-anchor="middle" font-size="30" font-weight="900" fill="#2c5bd0"
+                font-family="Hiragino Maru Gothic ProN, M PLUS Rounded 1c, sans-serif">へぇ</text>
+          <!-- 押せる部分（青いリング＋透明ドーム） -->
           <g class="dome">
-            <path d="M64 258 a136 34 0 0 0 272 0 c0 -150 -272 -150 -272 0 z" fill="url(#domeGrad)" stroke="#7d0d20" stroke-width="2"/>
-            <ellipse cx="160" cy="175" rx="70" ry="26" fill="rgba(255,255,255,.35)" transform="rotate(-12 160 175)"/>
-            <text x="200" y="245" text-anchor="middle" font-size="104" font-weight="900"
-                  font-family="Hiragino Mincho ProN, Yu Mincho, Noto Serif JP, serif"
-                  fill="#fff" stroke="#7d0d20" stroke-width="6" paint-order="stroke">へぇ</text>
+            <path d="M50 150 V210 A150 36 0 0 0 350 210 V150 Z" fill="url(#hbRing)" fill-opacity=".95"/>
+            <path d="M50 180 A150 36 0 0 0 350 180" fill="none" stroke="rgba(160,200,255,.55)" stroke-width="2.5"/>
+            <path d="M50 205 A150 36 0 0 0 350 205" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="6"/>
+            <ellipse cx="200" cy="150" rx="150" ry="36" fill="#2c66d4"/>
+            <ellipse cx="200" cy="150" rx="140" ry="32" fill="#1d4fb5"/>
+            <g fill="url(#hbStud)">
+              <ellipse cx="55" cy="189" rx="7" ry="6"/><ellipse cx="104" cy="208" rx="9" ry="7"/>
+              <ellipse cx="200" cy="216" rx="9" ry="7"/><ellipse cx="296" cy="208" rx="9" ry="7"/>
+              <ellipse cx="345" cy="189" rx="7" ry="6"/>
+            </g>
+            <path d="M72 150 A128 30 0 0 0 328 150 C328 5 72 5 72 150 Z" fill="url(#hbDome)"/>
+            <rect x="60" y="30" width="280" height="160" fill="url(#hbDimples)" clip-path="url(#hbDomeClip)"/>
+            <path d="M72 150 A128 30 0 0 0 328 150 C328 5 72 5 72 150 Z" fill="none" stroke="rgba(120,140,160,.6)" stroke-width="2"/>
+            <ellipse cx="150" cy="78" rx="52" ry="18" fill="rgba(255,255,255,.55)" transform="rotate(-22 150 78)"/>
           </g>
         </svg>
       </button>
+      <div class="my-count"><div class="num" id="count">0</div></div>
     </div>
 
     <div class="status-msg" id="msg">接続しています…</div>
